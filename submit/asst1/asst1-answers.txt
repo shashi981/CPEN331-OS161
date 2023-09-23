@@ -1,0 +1,255 @@
+step 4, part 1:
+
+jharvard@appliance (~/os161/root): sys161 kernel
+sys161: System/161 release 2.0.3, compiled Aug  5 2015 14:02:38
+
+OS/161 base system version 1.99.08
+Copyright (c) 2000, 2001-2005, 2008-2011, 2013, 2014
+   President and Fellows of Harvard College.  All rights reserved.
+
+Put-your-group-name-here's system version 0 (DUMBVM #1)
+
+292k physical memory available
+Device probe...
+lamebus0 (system main bus)
+emu0 at lamebus0
+ltrace0 at lamebus0
+ltimer0 at lamebus0
+beep0 at ltimer0
+rtclock0 at ltimer0
+lrandom0 at lamebus0
+random0 at lrandom0
+lhd0 at lamebus0
+lhd1 at lamebus0
+lser0 at lamebus0
+con0 at lser0
+
+cpu0: MIPS/161 (System/161 2.x) features 0x0
+OS/161 kernel [? for menu]: ?
+
+OS/161 kernel menu
+    [?o] Operations menu                [khgen] Next kernel heap generation 
+    [?t] Tests menu                     [khdump] Dump kernel heap           
+    [kh] Kernel heap stats              [q] Quit and shut down              
+
+Operation took 0.481954360 seconds
+OS/161 kernel [? for menu]: 
+
+
+
+
+
+Step 4, part 2:
+
+jharvard@appliance (~/os161/src): git log
+commit 944f0f3c9826333ed5c4d00003a60c910099ef5e
+Author: Shashikiran Gonugunta <shashi090801@gmail.com>
+Date:   Sun Sep 17 16:25:29 2023 -0400
+
+    Initial commit of os161 for CPEN331
+
+jharvard@appliance (~/os161/src): git tag
+asst1-start
+
+
+
+
+
+Step 5
+
+1. Traps in the system are managed through two primary handlers: `mips_utlb_handler` (line 69) and 
+`mips_general_handler` (line 87), both found in `~/os161/src/kern/arch/mips/locore/exception-mips1.S`.
+ The specific handler based on the exception type. Both utilize the `mips_trap` function from 
+`~/os161/src/kern/arch/mips/locore/trap.c`. This function determines actions based on conditions: 
+`mainbus_interrupt` for interrupts, `syscall` for system call traps, and `vm_fault` for TLB exceptions.
+
+"Traps are differtent from interrupts as Traps result from the current process's actions, 
+like making a system call, while interrupts originate from external devices and 
+aren't necessarily linked to the ongoing process" (xV6 book citation).
+
+2. User-initiated system calls are present in `~/os161/src/build/userland/lib/libc/syscalls.S`.
+ On line 57, the system call's identifier goes to the `v0` register, proceeding to the syscall code. 
+The execution of the system call happens through the `syscall` function in 
+`~/os161/src/kern/arch/mips/syscall/syscall.c`. After execution, the result is stored in the `v0` register, 
+and the program counter within the trapframe is updated. 
+
+3. I found two versions of the libc function exist within the source tree. 
+The first is in `common/libc` and the second in `userland/lib/libc`. 
+By keeping these versions separate, modifications to user libraries don't inadvertently influence the kernel, 
+ensuring that potential kernel vulnerabilities are minimized. So changes to user libraries wont impact the kernel operations.
+
+
+4. The role of the `configure` process is twofold. It first processes command line options to set the 
+installation path. Then, it crafts `def.mk` to support make files. If there's an OS switch
+ or configuration alterations, it's recommended to re-invoke the `configure` script to maintain system 
+compatibility and accurate configurations.
+
+5. Various factors decide the behavior of machine-level code. Like the
+ system's architecture, memory specifications, the number of registers, and the active CPU count.
+It's pretty common to encounter functions that are machine-dependent, 
+so it is necessary to have different implementations to ensure cross-system compatibility.
+
+6. The structure and size of the trapframe is defined within `trapframe.h`. 
+It's designed to encompass 37 distinct registers, each being 32 bits (uint32_t) in size.
+ The primary function of the trapframe is to capture and store register values when a trap is triggered.
+ A trapframe of this dimension is essential to guarantee that all register values can be accurately
+ restored post-trap during a context switch.
+
+7. The kernel's configuration details are stored in the `kern/conf/config` directory. 
+The associated `config` script generates a unique kernel compilation directory based on 
+the chosen configuration. In situations where there are changes to the kernel configurations, 
+new source file inclusions, or updates to build options, it's advised to re-run the `config` script.
+
+8. When modifications are made to header files in the OS/161 system, it's important to rebuild 
+the dependencies. To do this, the `bmake depend` command should be executed. This ensures 
+that the make process recognizes and incorporates the changes during the subsequent builds.
+
+9. After making code changes or updates in OS/161, developers should run the `bmake` command to 
+compile the modifications. After compilation, the `bmake install` command can be
+ used to move the newly compiled kernel into the `~/os161/root` directory, prepping it for execution.
+
+10. To integrate a custom "Hello World!" print function within OS/161, we can introduce this 
+function within `src/kern/main/menu.c`. This function can be linked to a specific command
+ letter, enabling us to invoke the "Hello World!" output through the command-line interface. After line 530 in
+the menu.c file there is a command table corresponding to the functions invoked, something similar to that 
+can also be done for our custom "Hello World!" function.
+
+11. When working with OS/161, we should consistently utilize the system's proprietary 
+include files and libraries. This is there due to the fact that standard utilities may not maintain 
+consistent behavior across different systems, potentially leading to unexpected outcomes or incompatibilities
+which may differ from MIPS architecture.
+
+12. When a user program is executed, the return value of the main function is
+ directed to the `v0` register. this value is transferred to the `s0` and `a0` registers
+ within the file `/os161/src/userland/lib/crt0/mips/crt0.S`. This mechanism ensures that the end status
+ or return value of the program is captured and stored.
+
+13. To introduce a new system call within OS/161, modifications should be made to the file 
+`os161/src/kern/arch/mips/syscall/syscall.c`. Also the new system call number must be 
+incorporated within `os161/src/kern/include/kern/syscall.h` to facilitate its identification and invocation.
+
+14. first function that executes when os161 starts is strcpy.
+
+15. first assembly instruction that executes is 
+addiu sp, sp, -24  in start.S file. 
+
+16. Output of the breakpoint is:
+Num     Type           Disp Enb Address    What
+1       breakpoint     keep y   0x800139e4 in kmain at ../../main/main.c:211
+2       breakpoint     keep y   0x80014a0c in menu at ../../main/menu.c:697
+
+
+17.
+Prior to the kernel main function's execution, assembly instructions from
+ /os161/src/kern/arch/sys161/main/start.S are processed. This segment is an integral software component of sys161 
+responsible for OS initialization. 
+It starts the boot stack's setup for the primary processor at the 
+top of physical memory, instructs the kernel to load at virtual address 0x80000200
+ (equivalent to physical address 0x00000200), establishes a memory layout, initializes the TLB, adjusts 
+the status register, retrieves a bootstring duplicate for arguments, and then invokes the kernel main function. 
+This main function activates the kernel, spawns the menu thread, pauses for a reboot command, and 
+ proceeds to termination.
+
+18. jal kmain
+
+19. 
+	102             kprintf("\n");
+	103             kprintf("OS/161 base system version %s\n", BASE_VERSION);
+	(gdb) 
+	104             kprintf("%s", harvard_copyright);
+	105             kprintf("\n");
+	106
+	107             kprintf("Put-your-group-name-here's system version %s (%s #%d)\n",
+	108                     GROUP_VERSION, buildconfig, buildversion);
+	109             kprintf("\n");
+	110
+	111             /* Early initialization. */
+	112             ram_bootstrap();
+	113             proc_bootstrap();
+	(gdb) 
+	114             thread_bootstrap();
+	115             hardclock_bootstrap();
+	116             vfs_bootstrap();
+	117             kheap_nextgeneration();
+	118
+	119             /* Probe and initialize devices. Interrupts should come on. */
+	120             kprintf("Device probe...\n");
+	121             KASSERT(curthread->t_curspl > 0);
+	122             mainbus_bootstrap();
+	123             KASSERT(curthread->t_curspl == 0);
+	(gdb) 
+	124             /* Now do pseudo-devices. */
+	125             pseudoconfig();
+	126             kprintf("\n");
+	127             kheap_nextgeneration();
+	128
+	129             /* Late phase of initialization. */
+	130             vm_bootstrap();
+	131             kprintf_bootstrap();
+	132             thread_start_cpus();
+	(gdb) 
+	134             /* Default bootfs - but ignore failure, in case emu0 doesn't exist */
+	135             vfs_setbootfs("emu0");
+	136
+	137             kheap_nextgeneration();
+	138
+	139             /*
+	140              * Make sure various things aren't screwed up.
+	141              */
+	142             COMPILE_ASSERT(sizeof(userptr_t) == sizeof(char *));
+	143             COMPILE_ASSERT(sizeof(*(userptr_t)0) == sizeof(char));
+
+20. Cannot access memory at address 0x80000
+
+21.
+$1 = {c_self = 0x8003af00, c_number = 0, 
+  c_hardware_number = 0, 
+  c_curthread = 0x8003bf80, c_zombies = {
+    tl_head = {tln_prev = 0x0, 
+      tln_next = 0x8003af1c, tln_self = 0x0}, 
+    tl_tail = {tln_prev = 0x8003af10, 
+      tln_next = 0x0, tln_self = 0x0}, 
+    tl_count = 0}, c_hardclocks = 0, 
+  c_spinlocks = 0, c_isidle = false, 
+  c_runqueue = {tl_head = {tln_prev = 0x0, 
+---Type <return> to continue, or q <return> to quit---
+      tln_next = 0x8003af44, tln_self = 0x0}, 
+    tl_tail = {tln_prev = 0x8003af38, 
+      tln_next = 0x0, tln_self = 0x0}, 
+    tl_count = 0}, c_runqueue_lock = {
+    splk_lock = 0, splk_holder = 0x0}, 
+  c_ipi_pending = 0, c_shootdown = {{
+      ts_placeholder = 0} <repeats 16 times>}, 
+  c_numshootdown = 0, c_ipi_lock = {
+    splk_lock = 0, splk_holder = 0x0}}
+
+22. 0 cpus
+
+
+23.
+1 cpus
+cpu 0:
+$1 = {c_self = 0x8003af00, c_number = 0, 
+  c_hardware_number = 0, 
+  c_curthread = 0x8003bf80, c_zombies = {
+    tl_head = {tln_prev = 0x0, 
+      tln_next = 0x8003af1c, tln_self = 0x0}, 
+    tl_tail = {tln_prev = 0x8003af10, 
+      tln_next = 0x0, tln_self = 0x0}, 
+    tl_count = 0}, c_hardclocks = 1, 
+---Type <return> to continue, or q <return> to quit---
+  c_spinlocks = 0, c_isidle = false, 
+  c_runqueue = {tl_head = {tln_prev = 0x0, 
+      tln_next = 0x8003af44, tln_self = 0x0}, 
+    tl_tail = {tln_prev = 0x8003af38, 
+      tln_next = 0x0, tln_self = 0x0}, 
+    tl_count = 0}, c_runqueue_lock = {
+    splk_lock = 0, splk_holder = 0x0}, 
+  c_ipi_pending = 0, c_shootdown = {{
+      ts_placeholder = 0} <repeats 16 times>}, 
+  c_numshootdown = 0, c_ipi_lock = {
+---Type <return> to continue, or q <return> to quit---
+    splk_lock = 0, splk_holder = 0x0}}
+
+
+
