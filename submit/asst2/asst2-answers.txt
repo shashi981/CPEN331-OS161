@@ -1,0 +1,37 @@
+q1. What happens to a thread when it exits (i.e., calls thread_exit())? What about when it sleeps?
+a1. When a thread finishes, it confirms its stack is in order, clears its own virtual memory, and gets rid of it. It reduces the count of any vnode it might be pointing to, places itself in a dormant state called S_ZOMB, and prepares to crash if it tries to operate again before its end. When the thread takes a break, it checks it's not handling an interruption, gives control to the next thread, goes into the S_SLEEP mode, and only regains control when the wakeup() function is used on its location.
+
+q2. What function(s) handle(s) a context switch?
+a2. mi_switch and md_switch
+
+q3. What does it mean for a thread to be in each of the possible thread states?
+a3. It means that the thread could be either running, sleeping, ready or in a zombie states
+    these states correspond to:
+    S_RUN, S_SLEEP, S_READY, S_ZOMB respectively.
+
+q4. What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off interrupts in the thread subsystem code?
+a4. Turning off interrupts means even if one's signaled, the handler don't get called till they're on again. This is done using the function splhigh and turn them on with spl0.  Must turn off interrupts during thread tasks so they finish right and are not interrupted. For instance, it'd be bad if a context switch was interrupted, or during forking.
+
+q5. What happens when a thread wakes up another thread? How does a sleeping thread get to run again?
+a5. When a thread wakes up another thread it removes it from the queue and calls make_runnable on it appends it
+ to the end of runqueue. The thread runs again when mi_switch is called and it is returned by the scheduler.
+
+q6. What function(s) choose(s) the next thread to run?
+a6. struct thread * scheduler(void)
+
+q7. How does it (do they) pick the next thread?
+a7. it schedules each thread in a special queue in equal time-slice without priorities.
+
+q8. What role does the hardware timer play in scheduling? What hardware independent function is called on a timer interrupt?
+a8. the hardware timer calls the hardclock functionf in kern/thread/hardclock.c.
+    The hardlock function then calls thread_yield to force a contect switch.
+
+q9. Describe how wchan_sleep() and wchan_wakeone() are used to implement semaphores.
+a9. wchan_sleep() suspends the curThread unitl the semaphore count is >=0.
+	wchan_wakeone wakes up the suspended thread ,whose addr is passed to this function, waiting on the current semaphore    
+
+q10. How does the implementation of wchan ensure that a thread never misses a wakeup signal: that another thread cannot attempt to awaken the first thread just as it is preparing to sleep, but before it is actually placed into the sleep queue?
+a10. It ensures this using spinlocks for example before being placed on the sleep queue it acquires a lock that prevents other 
+threads from intervening, while it is holding the lock it checks for the waiting conditions of the lock to ensure nothing is missed. 
+If the condition isn't met the thread sleeps still holding the lock. To wake threads up it grabs a lock, changes condition before signaling a wake up.
+

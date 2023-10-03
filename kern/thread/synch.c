@@ -44,6 +44,9 @@
 //
 // Semaphore.
 
+unsigned int free = 0;
+unsigned int busy = 1;
+
 struct semaphore *
 sem_create(const char *name, unsigned initial_count)
 {
@@ -155,6 +158,18 @@ lock_create(const char *name)
         }
 
         // add stuff here as needed
+        lock->lk_wchan = wchan_create(lock->lk_name);
+                
+        if (lock->lk_wchan == NULL) {
+                kfree(lock->lk_name);
+                kfree(lock);
+                return NULL;
+        }
+        else{
+                spinlock_init(&lock -> lk_spinlock);
+                lock->lk_sentinel = free;
+                lock->cur_lk_thread = NULL;
+        }
 
         return lock;
 }
@@ -165,6 +180,9 @@ lock_destroy(struct lock *lock)
         KASSERT(lock != NULL);
 
         // add stuff here as needed
+        spinlock_cleanup(&lock->lk_spinlock);
+        wchan_destroy(lock->lk_wchan);
+        
 
         kfree(lock->lk_name);
         kfree(lock);
@@ -173,28 +191,39 @@ lock_destroy(struct lock *lock)
 void
 lock_acquire(struct lock *lock)
 {
-        // Write this
+        //Assuming that the lock is not NULL
+        spinlock_acquire(&lock->lk_spinlock);
 
-        (void)lock;  // suppress warning until code gets written
+        while(lock->lk_sentinel == busy) wchan_sleep(lock->lk_wchan, &lock->lk_spinlock);
+                
+        lock->lk_sentinel = busy; 
+        lock->cur_lk_thread = curthread;
+
+        spinlock_release(&lock->lk_spinlock);
+
+
 }
 
 void
 lock_release(struct lock *lock)
 {
-        // Write this
+        //Assuming that the lock is busy and not NULL
+        spinlock_acquire(&lock->lk_spinlock); //get the spin lock
 
-        (void)lock;  // suppress warning until code gets written
+        lock->lk_sentinel = free; // set the flag to free (0)
+        lock->cur_lk_thread = NULL; 
+
+        wchan_wakeone(lock -> lk_wchan, &lock->lk_spinlock); //wake the lock
+        spinlock_release(&lock->lk_spinlock); // release spin lock
 }
 
-bool
-lock_do_i_hold(struct lock *lock)
+bool lock_do_i_hold(struct lock *lock)
 {
-        // Write this
-
-        (void)lock;  // suppress warning until code gets written
-
-        return true; // dummy until code gets written
+        // check is the cur_lk_thread is same as the curthread 
+        if (lock->cur_lk_thread == curthread) return true;
+        else return false;
 }
+
 
 ////////////////////////////////////////////////////////////
 //
@@ -218,6 +247,20 @@ cv_create(const char *name)
         }
 
         // add stuff here as needed
+        // similar process as the lock
+
+        cv->lk_cv_wchan = wchan_create(cv->cv_name);
+
+        if(cv->lk_cv_wchan == NULL)
+        {
+                kfree(cv->cv_name); // have to free this because in the previous 
+                                    // if statement passed and initialized cv_>name
+                kfree(cv);
+                return NULL;
+        }
+
+        //now that we know it's not null lets init the spin lock
+        spinlock_init(&cv->lk_cv_spinlock);
 
         return cv;
 }
@@ -228,6 +271,10 @@ cv_destroy(struct cv *cv)
         KASSERT(cv != NULL);
 
         // add stuff here as needed
+
+        //similar process as lock destroy
+        wchan_destroy(cv->lk_cv_wchan);
+        spinlock_cleanup(&cv->lk_cv_spinlock);
 
         kfree(cv->cv_name);
         kfree(cv);
