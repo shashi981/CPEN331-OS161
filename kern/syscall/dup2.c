@@ -21,16 +21,10 @@
  * 
  * Returns:
  *  - 0 on success, sets *output to the new file descriptor number
- *  - EBADF on failure (if oldfd or newfd is invalid)
  */
 int sys_dup2(int oldfd, int newfd, int *output);
 
 int sys_dup2(int oldfd, int newfd, int *output) {
-    // Check if newfd or oldfd is invalid
-    if (newfd < 0 || oldfd < 0 || newfd >= OPEN_MAX || oldfd >= OPEN_MAX) {
-        return EBADF; // Invalid file descriptor
-    }
-
     // Check if newfd is the same as oldfd
     if (newfd == oldfd) {
         *output = newfd; // No duplication needed, set *output to newfd
@@ -43,7 +37,3 @@ int sys_dup2(int oldfd, int newfd, int *output) {
 
     return 0; // Operation successful
 }
-
-    // if(curproc->tb->entries[newfd]!= NULL){
-    //     curproc->tb->entries[newfd] = NULL;
-    // }
