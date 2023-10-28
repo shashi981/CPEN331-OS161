@@ -1,0 +1,47 @@
+1. What are the ELF magic numbers?
+Ans1: ELF files are identified by their initial four bytes: '0x7F', 'E', 'L', 'F'. These magic numbers are located at the beginning of every ELF file and serve as identifiers checked by the operating system to validate the file format.
+
+2. What is the difference between UIO_USERISPACE and UIO_USERSPACE? When should one use UIO_SYSSPACE instead?
+Ans2: UIO_USERISPACE indicates the transfer of user data between kernel and user space, while UIO_USERSPACE signifies user code being moved between these spaces. UIO_SYSSPACE is used for internal kernel data transfers, ensuring data integrity within the kernel.
+
+3. Why can the struct uio that is used to read in a segment be allocated on the stack in load_segment()? Where does the memory read actually go?
+Ans3: The struct uio can be stack-allocated because it acts as an abstraction for data transfer, unrelated to the final memory destination. In this context, the memory read location is u.uio_iov.iov_ubase in vaddr, not constrained by the struct's allocation.
+
+4. In runprogram(), why is it important to call vfs_close() before going to usermode?
+Ans4: Calling vfs_close() is crucial as it decrements the ELF file's reference count in vnode_decref (in src/kern/vfs/vnode.c). If omitted, the file might not close properly, potentially leading to memory leaks upon transitioning to user mode.
+
+5. What function forces the processor to switch into usermode? Is this function machine dependent?
+Ans5: The transition to user mode is initiated by enter_new_process in src/kern/arch/mips/locore/trap.c. This function sets up the trap frame and invokes mips_usermode and asm_usermode (in src/kern/arch/mips/locore/exception-mips1.S) to update the status register and load registers from the trap frame, making it architecture-specific.
+
+6. In what file are copyin and copyout defined? memmove? Why can't copyin and copyout be implemented as simply as memmove?
+Ans6: copyin and copyout are defined in copyinout.c, while memmove is in memmove.c. Unlike memmove, copyin and copyout handle both user and kernel address spaces, requiring checks to prevent overlap between these spaces, making their implementation more complex.
+
+7. What (briefly) is the purpose of userptr_t?
+Ans7: userptr_t indicates a one-byte pointer denoting a memory address in user space. It is instrumental in operations involving memory transfers between user and kernel spaces specified by the userptr_t address.
+
+8. What is the numerical value of the exception code for a MIPS system call?
+Ans8: The exception code for a MIPS system call is defined as 8, denoted by EX_SYS on line 91 in src/kern/arch/mips/include/trapframe.h.
+
+9. How many bytes is an instruction in MIPS? (Answer this by reading syscall() carefully, not by looking somewhere else.)
+Ans9: An instruction in MIPS is 4 bytes, deduced from the increment of 4 bytes for the program counter (tf->tf_epc) upon syscall return, indicated in src/kern/arch/mips/syscall/syscall.c on line 141.
+
+10. Why do you "probably want to change" the implementation of kill_curthread()?
+Ans10: Modifying kill_curthread() is recommended to prevent potential kernel failures caused by usermode traps. Creating a handler that can gracefully terminate the process or manage errors would enhance the robustness of the kernel.
+
+11. What would be required to implement a system call that took more than 4 arguments?
+Ans11: To implement a system call with more than 4 arguments, additional arguments beyond the first 2 (which can be passed directly) would need to be allocated on the user stack using copyin(). For 64-bit arguments, only 2 can be passed directly before requiring allocation on the user stack.
+
+12. What is the purpose of the SYSCALL macro?
+Ans12: The SYSCALL macro provides a template for SYSCALL functions, with SYS_##sym passed in v0. For example, SYSCALL(fork, 0) places SYS_fork in v0 before invoking the MIPS syscall instruction.
+
+13. What is the MIPS instruction that actually triggers a system call? (Answer this by reading the source in userland/lib/libc/arch/mips, not looking somewhere else.)
+Ans13: The MIPS instruction that triggers a system call is "syscall," explicitly stated on line 85 of src/build/userland/lib/libc/syscalls.S.
+
+14. After reading syscalls-mips.S and syscall.c, you should be prepared to answer the following question: OS/161 supports 64-bit values; lseek() takes and returns a 64-bit offset value. Thus, lseek() takes a 32-bit file handle (arg0), a 64-bit offset (arg1), a 32-bit whence (arg2), and needs to return a 64-bit offset value. In void syscall(struct trapframe tf) where will you find each of the three arguments (in which registers) and how will you return the 64-bit offset?
+Ans14: The first argument (32-bit file handle) is located in a0, the second argument (64-bit offset) is split between a2 and a3, and the last argument is retrieved from the user stack at sp+16 using copyin(). To return the 64-bit offset, it is placed in v0/v1 registers.
+
+15. As you were reading the code in runprogram.c and loadelf.c, you probably noticed how the kernel manipulates the files. Which kernel function is called to open a file? Which macro is called to read the file? What about to write a file? Which data structure is used in the kernel to represent an open file?
+Ans15: The kernel employs vfs_open() for file opening, VOP_READ macro for reading, and VOP_WRITE for writing. An open file is represented by the vnode data structure, enabling VOP_READ and VOP_WRITE operations.
+
+16. What is the purpose of VOP_INCREF and VOP_DECREF?
+Ans16: VOP_INCREF and VOP_DECREF are essential in managing reference counts when opening or closing files, devices, or other kernel objects. They are called to update the reference count of the vnode, ensuring proper memory management and preventing resource leaks.

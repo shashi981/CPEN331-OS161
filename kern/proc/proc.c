@@ -48,6 +48,8 @@
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
+#include <kern/fcntl.h>
+#include <vfs.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -82,6 +84,18 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
+	proc->tb = create_table();
+	if(proc->tb == NULL){
+		kfree(proc);
+		return NULL;
+	}
+	proc->tb->file_manager_lock = sem_create("file_lock",0);
+
+	
+	// if(proc->tb == NULL)
+	// {
+	// 	return NULL;
+	// }
 	return proc;
 }
 
@@ -200,6 +214,28 @@ proc_create_runprogram(const char *name)
 		return NULL;
 	}
 
+	struct vnode *v_std_in;
+	int in = vfs_open(kstrdup((const char *)"con:"), O_RDONLY, 0, &v_std_in);
+	if(in){
+		return NULL;
+	}
+	add_entry(newproc->tb, 0, O_RDONLY, v_std_in);
+
+	struct vnode *v_std_out;
+	int out = vfs_open(kstrdup((const char *)"con:"), O_WRONLY, 0, &v_std_out);
+	if(out){
+		return NULL;
+	}
+	add_entry(newproc->tb, 0, O_WRONLY, v_std_out);
+
+	struct vnode *v_std_err;
+	int err = vfs_open(kstrdup((const char *)"con:"), O_WRONLY, 0, &v_std_err);
+	if(err){
+		return NULL;
+	}
+	add_entry(newproc->tb, 0, O_WRONLY, v_std_err);
+	
+	//
 	/* VM fields */
 
 	newproc->p_addrspace = NULL;

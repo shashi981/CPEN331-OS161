@@ -331,6 +331,7 @@ file      thread/threadlist.c
 #
 
 file      proc/proc.c
+file      proc/filemanager.c
 
 #
 # Virtual memory system
@@ -376,6 +377,14 @@ file      vfs/devnull.c
 file      syscall/loadelf.c
 file      syscall/runprogram.c
 file      syscall/time_syscalls.c
+file      syscall/open.c
+file      syscall/close.c
+file      syscall/read.c
+file      syscall/write.c
+file      syscall/sys__getcwd.c   
+file      syscall/sys_chdir.c
+file      syscall/dup2.c
+
 
 #
 # Startup and initialization
