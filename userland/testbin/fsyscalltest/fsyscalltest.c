@@ -262,39 +262,39 @@ simultaneous_write_test()
 		err(1, "%s: write", file2);
 	}
 
-	// /* Rewind both files */
-	// lseek_ret = lseek(fd1, -(40-seekpos), SEEK_CUR);
-	// if (lseek_ret != seekpos) {
-	// 	err(1, "%s: lseek", file1);
-	// }
+	/* Rewind both files */
+	lseek_ret = lseek(fd1, -(40-seekpos), SEEK_CUR);
+	if (lseek_ret != seekpos) {
+		err(1, "%s: lseek", file1);
+	}
 
-	// lseek_ret = lseek(fd2, seekpos, SEEK_SET);
-	// if (lseek_ret != seekpos) {
-	// 	err(1, "%s: lseek", file2);
-	// }
+	lseek_ret = lseek(fd2, seekpos, SEEK_SET);
+	if (lseek_ret != seekpos) {
+		err(1, "%s: lseek", file2);
+	}
 
-	// /* Read and test the data from the first file */
-	// rv = read(fd1, readbuf, 40-seekpos);
-	// if (rv<0) {
-	// 	err(1, "%s: read", file1);
-	// }	
-	// readbuf[40] = 0;
+	/* Read and test the data from the first file */
+	rv = read(fd1, readbuf, 40-seekpos);
+	if (rv<0) {
+		err(1, "%s: read", file1);
+	}	
+	readbuf[40] = 0;
 	
-	// if (strcmp(readbuf, &writebuf1[seekpos]))
-	// 	errx(1, "Buffer data mismatch for %s!", file1);
+	if (strcmp(readbuf, &writebuf1[seekpos]))
+		errx(1, "Buffer data mismatch for %s!", file1);
 	
-	// /* Read and test the data from the second file */
-	// rv = read(fd2, readbuf, 40-seekpos);
-	// if (rv<0) {
-	// 	err(1, "%s: read", file2);
-	// }
-	// readbuf[40] = 0;
+	/* Read and test the data from the second file */
+	rv = read(fd2, readbuf, 40-seekpos);
+	if (rv<0) {
+		err(1, "%s: read", file2);
+	}
+	readbuf[40] = 0;
 
-	// if (strcmp(readbuf, &writebuf2[seekpos])) {
-	// 	printf("Expected: \"%s\", actual: \"%s\"\n", writebuf2,
-	// 	       readbuf);
-	// 	errx(1, "Buffer data mismatch for %s!", file2);
-	// }
+	if (strcmp(readbuf, &writebuf2[seekpos])) {
+		printf("Expected: \"%s\", actual: \"%s\"\n", writebuf2,
+		       readbuf);
+		errx(1, "Buffer data mismatch for %s!", file2);
+	}
 
 	rv = close(fd1);
 	if (rv<0) {
@@ -365,10 +365,10 @@ main()
 	simple_test();
 	printf("Passed Part 2 of fsyscalltest\n");
 	
-	//simultaneous_write_test();
+	simultaneous_write_test();
 	printf("Passed Part 3 of fsyscalltest\n");
 	
-	//test_dup2();
+	test_dup2();
 	printf("Passed Part 4 of fsyscalltest\n");
 
 	dir_test();
