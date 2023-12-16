@@ -42,9 +42,7 @@
 struct addrspace *
 as_create(void)
 {
-	struct addrspace *as;
-
-	as = kmalloc(sizeof(struct addrspace));
+	struct addrspace *as = kmalloc(sizeof(struct addrspace));
 	if (as == NULL) {
 		return NULL;
 	}
@@ -89,9 +87,8 @@ as_destroy(struct addrspace *as)
 void
 as_activate(void)
 {
-	struct addrspace *as;
+	struct addrspace *as = kmalloc(sizeof(struct addrspace));
 
-	as = curproc_getas();
 	if (as == NULL) {
 		/*
 		 * Kernel thread without an address space; leave the
@@ -99,10 +96,6 @@ as_activate(void)
 		 */
 		return;
 	}
-
-	/*
-	 * Write this.
-	 */
 }
 
 void
@@ -139,7 +132,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 	(void)readable;
 	(void)writeable;
 	(void)executable;
-	return EUNIMP;
+	return ENOSYS;
 }
 
 int
